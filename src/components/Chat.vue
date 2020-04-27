@@ -12,18 +12,25 @@
       <div class="chat">
         <div class="messages">
           <ul class="list-unstyled">
-            <li class="loadmessages">
-              <b-button variant="secondary">Load Messages</b-button>
+            <li class="loadmessages" v-if="loadMessagesButtonShow">
+              <b-button variant="secondary" v-on:click="loadMessages"
+                >Load Messages</b-button
+              >
             </li>
             <!-- Check for the message from me (will be added only from client side) -->
             <li
               v-for="message in messages"
               :key="message.id"
               class="clearfix"
-              :class="message.type == 'me' ? 'me' : ''"
+              :class="message.type == 'chat' ? '' : message.type"
             >
-              <div class="name">{{ message.name }}</div>
-              <span>{{ message.text }}</span>
+              <div v-if="message.type != message_types.INFO">
+                <div class="name">{{ message.name }}</div>
+                <span>{{ message.text }}</span>
+              </div>
+              <div v-if="message.type == message_types.INFO">
+                <b-alert show variant="info">{{ message.text }}</b-alert>
+              </div>
             </li>
             <!-- <li class="me clearfix">
               <div class="name">a</div>
@@ -68,6 +75,17 @@ import {
 export default {
   // MUST by regular functions, NOT arrow functions.
   methods: {
+    loadMessages() {
+      console.log("clicked load messages");
+      for (let i = this.chatHistory.length - 1; i >= 0; i--) {
+        let chat = this.chatHistory[i];
+        console.log(chat);
+        chat.id = -chat.id; // negative because they must be different from the current li keys
+        this.messages.unshift(chat);
+      }
+
+      this.loadMessagesButtonShow = false;
+    },
     // client sends message.
     sendMessage(e) {
       e.preventDefault(); // prevent page reload
@@ -122,8 +140,11 @@ export default {
           type: "chat",
         },
       ],
+      chatHistory: [],
       people: ["hey", "danny"],
       clientText: "",
+      loadMessagesButtonShow: true,
+      message_types,
     };
   },
   // establish connection with room
@@ -143,6 +164,10 @@ export default {
     [socket_routes.ERROR]: (err) => {
       // catch all error handling FOR NOW.
       alert(err);
+    },
+    [socket_routes.CHAT_HISTORY](messages) {
+      console.log(messages);
+      this.chatHistory = messages;
     },
     [socket_routes.CHAT_MESSAGE](data) {
       let text = data[0];
@@ -289,6 +314,12 @@ export default {
   background: #e0edff;
   padding: 5px 12px;
   font-size: 15px;
+}
+
+.chat .messages ul li.info {
+  text-align: center;
+  padding-top: 20px;
+  padding-bottom: 10px;
 }
 
 .chat .messages ul li.me {

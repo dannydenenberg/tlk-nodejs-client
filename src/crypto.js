@@ -5,11 +5,13 @@ export function hash(p) {
   return SHA512(p).toString(CryptoJS.enc.Base64);
 }
 
+// ALL Cookies are scope to the current URL.
 export function setCookie(cname, cvalue, exdays) {
+  let path = location.pathname.substring(1); // path is current URL. All cookies are scoped.
   var d = new Date();
   d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
   var expires = "expires=" + d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+  document.cookie = cname + "=" + cvalue + ";" + expires + `;path=/${path}`;
 }
 
 export function getCookie(cname) {
