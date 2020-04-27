@@ -11,7 +11,8 @@ export function setCookie(cname, cvalue, exdays) {
   var d = new Date();
   d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
   var expires = "expires=" + d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + `;path=/${path}`;
+  document.cookie =
+    cname + "=" + cvalue + ";" + expires + `;path=/${path}; SameSite=None`;
 }
 
 export function getCookie(cname) {
@@ -27,6 +28,13 @@ export function getCookie(cname) {
     }
   }
   return "";
+}
+
+/**
+ * Create a text ID based on the current time and a random number added.
+ */
+export function generateTextId() {
+  return new Date().getTime() + parseInt(Math.random() * 40);
 }
 
 // given a date, output "7:35 PM", etc.

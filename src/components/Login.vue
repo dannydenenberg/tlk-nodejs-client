@@ -24,13 +24,16 @@
       <div>
         <b-form-input
           class="w-25"
-          type="password"
+          :type="showPassword ? 'text' : 'password'"
           v-model="password"
           :state="passwordState"
           aria-describedby="input-live-help input-live-feedback"
           placeholder="Password baybeee"
           trim
         ></b-form-input>
+        <b-button variant="light" v-on:click="showPassword = !showPassword"
+          >Show Password</b-button
+        >
         <!-- This is a form text block (formerly known as help block) -->
         <b-form-text id="input-live-help">Good password.</b-form-text>
       </div>
@@ -110,6 +113,7 @@ export default {
     return {
       name: "",
       password: "",
+      showPassword: false,
     };
   },
 };

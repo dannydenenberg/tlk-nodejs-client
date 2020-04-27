@@ -25,8 +25,18 @@
               :class="message.type == 'chat' ? '' : message.type"
             >
               <div v-if="message.type != message_types.INFO">
-                <div class="name">{{ message.name }}</div>
-                <span>{{ message.text }}</span>
+                <div class="name">
+                  {{ message.name }}
+
+                  <span class="checkmarks">
+                    {{
+                      message.type == "me"
+                        ? checkMarks(message.numberOfCheckMarks)
+                        : ""
+                    }}
+                  </span>
+                </div>
+                <span id="text">{{ message.text }}</span>
               </div>
               <div v-if="message.type == message_types.INFO">
                 <b-alert show variant="info">{{ message.text }}</b-alert>
@@ -65,7 +75,7 @@
 </template>
 
 <script>
-import { getCookie, formatAMPM } from "./../crypto";
+import { getCookie, formatAMPM, generateTextId } from "./../crypto";
 import {
   socket_routes,
   message_types,
@@ -76,11 +86,11 @@ export default {
   // MUST by regular functions, NOT arrow functions.
   methods: {
     loadMessages() {
-      console.log("clicked load messages");
+      console.log(`Chat History:`);
+      console.log(this.messages);
+
       for (let i = this.chatHistory.length - 1; i >= 0; i--) {
         let chat = this.chatHistory[i];
-        console.log(chat);
-        chat.id = -chat.id; // negative because they must be different from the current li keys
         this.messages.unshift(chat);
       }
 
@@ -95,7 +105,7 @@ export default {
       let time = new Date().toString();
       let name = getCookie("name");
       let room = getCookie("room");
-      let id = this.messages.length + 1; // NOT sent to server
+      let id = generateTextId(); // NOT sent to server
 
       // add my text to the chat on current page
       this.messages.push({
@@ -103,16 +113,32 @@ export default {
         name,
         id,
         time,
+        numberOfCheckMarks: 0,
         type: "me", // simply for clinet
       });
 
       // reset input
       this.clientText = "";
 
+      //  to store in the database
+      let message = {
+        text,
+        time,
+        name,
+        type: "chat",
+        id,
+      };
+
       // emit to server
-      this.$socket.emit(socket_routes.CHAT_MESSAGE, room, text, time);
+      this.$socket.emit(socket_routes.CHAT_MESSAGE, room, message);
+    },
+    /**
+     * Generate n numbers of checkmarks.
+     */ checkMarks(n) {
+      return "✓".repeat(n);
     },
   },
+  computed: {},
   data() {
     return {
       /**
@@ -157,6 +183,13 @@ export default {
     let password = getCookie("password");
     let name = getCookie("name");
     this.$socket.emit(socket_routes.NEW_USER, roomName, name, password);
+
+    // when user opens tab (goes back to the web page)
+    // Emit a READ message out.
+    window.addEventListener("focus", () => {
+      console.log("Focus. 🎉");
+      this.$socket.emit(socket_routes.MESSAGE_READ, roomName);
+    });
   },
   // EACH socket function takes in an array: DATA, this holds the parameters in array form
   sockets: {
@@ -165,29 +198,48 @@ export default {
       // catch all error handling FOR NOW.
       alert(err);
     },
-    [socket_routes.CHAT_HISTORY](messages) {
+    [socket_routes.CHAT_HISTORY](data) {
+      console.log(`Recieved Chat History`);
+      console.log(data);
+
+      let messages = data;
       console.log(messages);
       this.chatHistory = messages;
     },
+    [socket_routes.MESSAGE_READ]() {
+      // second of the check notifications.
+      // any message with 1 checks go to 2.
+      for (let message of this.messages) {
+        if (message.type == "me") {
+          if (message.numberOfCheckMarks == 1) {
+            message.numberOfCheckMarks = 2;
+          }
+        }
+      }
+    },
+    [socket_routes.MESSAGE_SENT]() {
+      // first of the check notifications.
+      // any message with 0 checks go to 1.
+      for (let message of this.messages) {
+        if (message.type == "me") {
+          if (message.numberOfCheckMarks == 0) {
+            message.numberOfCheckMarks = 1;
+          }
+        }
+      }
+    },
     [socket_routes.CHAT_MESSAGE](data) {
-      let text = data[0];
-      let name = data[1];
-      let time = data[2];
+      console.log(`Recieved Chat Message`);
+      console.log(data);
 
-      console.log(text);
+      let message = data;
+      console.log(message.text);
 
       // properties
-      let timeAMPM = formatAMPM(new Date(time)); // converts to current time in the function
-      let id = this.messages.length + 1; // NOT sent to server
+      message.time = formatAMPM(new Date(message.time)); // converts to current time in the function
 
       // add my text to the chat on current page
-      this.messages.push({
-        text,
-        name,
-        id,
-        time: timeAMPM,
-        type: message_types.CHAT, // simply for clinet
-      });
+      this.messages.push(message);
     },
   },
 };
@@ -238,6 +290,7 @@ export default {
   padding-left: 15px;
   position: relative;
   height: auto;
+  padding-bottom: 28px;
 }
 
 .chat .input {
@@ -254,6 +307,11 @@ export default {
   font-size: 0;
   white-space: nowrap;
 }
+
+.checkmarks {
+  color: green;
+}
+
 .input-group-addon,
 .input-group-btn {
   width: 1%;
@@ -309,7 +367,7 @@ export default {
   margin-bottom: 5px;
 }
 
-.chat .messages ul li span {
+.chat .messages ul li #text {
   border-radius: 5px !important;
   background: #e0edff;
   padding: 5px 12px;

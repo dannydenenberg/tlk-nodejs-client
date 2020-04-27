@@ -5,6 +5,8 @@ export const message_types = {
 };
 
 export const socket_routes = {
+  MESSAGE_READ: "messageread",
+  MESSAGE_SENT: "messagesent",
   NEW_USER: "newuser",
   ERROR: "error",
   PERSON_JOIN: "personjoined",
