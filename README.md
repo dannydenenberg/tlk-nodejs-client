@@ -1,4 +1,5 @@
-# chat-design-2
+# tlk-nodejs-client
+The vue front end to the chat app.
 
 ## Project setup
 ```
