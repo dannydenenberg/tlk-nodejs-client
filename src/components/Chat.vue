@@ -95,6 +95,9 @@ export default {
       }
 
       this.loadMessagesButtonShow = false;
+
+      // client has read the OLD messages
+      this.$socket.emit(socket_routes.MESSAGE_READ, getCookie("room"));
     },
     // client sends message.
     sendMessage(e) {
@@ -151,26 +154,29 @@ export default {
       }
        */
       messages: [
-        {
-          text: "this is my text",
-          name: "july",
-          id: 1423,
-          time: new Date().toString(),
-          type: "chat",
-        },
-        {
-          text: "july is a bit overdramatic",
-          name: "fred",
-          id: 4893,
-          time: new Date().toString(),
-          type: "chat",
-        },
+        // {
+        //   text: "this is my text",
+        //   name: "july",
+        //   id: 1423,
+        //   time: new Date().toString(),
+        //   type: "chat",
+        // },
+        // {
+        //   text: "july is a bit overdramatic",
+        //   name: "fred",
+        //   id: 4893,
+        //   time: new Date().toString(),
+        //   type: "chat",
+        // },
       ],
       chatHistory: [],
-      people: ["hey", "danny"],
+      people: [
+        // "julie", "danny"
+      ],
       clientText: "",
       loadMessagesButtonShow: true,
       message_types,
+      windowFocused: true,
     };
   },
   // establish connection with room
@@ -188,10 +194,18 @@ export default {
     // Emit a READ message out.
     window.addEventListener("focus", () => {
       console.log("Focus. 🎉");
+      this.windowFocused = true;
+      this.$socket.emit(socket_routes.MESSAGE_READ, roomName);
+    });
+
+    window.addEventListener("blur", () => {
+      console.log("Focus. 🎉");
+      this.windowFocused = false;
       this.$socket.emit(socket_routes.MESSAGE_READ, roomName);
     });
   },
   // EACH socket function takes in an array: DATA, this holds the parameters in array form
+  // if there are more than one parameter being sent by server, data is an array of those parameters
   sockets: {
     connect() {},
     [socket_routes.ERROR]: (err) => {
@@ -199,10 +213,15 @@ export default {
       alert(err);
     },
     [socket_routes.CHAT_HISTORY](data) {
+      let names = data[1];
+      names.forEach((name) => {
+        this.people.push(name);
+      });
+
       console.log(`Recieved Chat History`);
       console.log(data);
 
-      let messages = data;
+      let messages = data[0];
       console.log(messages);
       this.chatHistory = messages;
     },
@@ -228,7 +247,20 @@ export default {
         }
       }
     },
+    [socket_routes.PERSON_JOIN](name) {
+      // person joined chat, add him to list of users
+      this.people.push(name);
+    },
+    [socket_routes.USER_DISCONNECT](name) {
+      // person left, remove him from list of users
+      this.people = this.people.filter((person) => person != name);
+    },
     [socket_routes.CHAT_MESSAGE](data) {
+      // if the user is on the window, tell everyone
+      if (this.windowFocused) {
+        this.$socket.emit(socket_routes.MESSAGE_READ, getCookie("room"));
+      }
+
       console.log(`Recieved Chat Message`);
       console.log(data);
 
@@ -295,7 +327,8 @@ export default {
 
 .chat .input {
   position: absolute;
-  bottom: 0;
+  // bottom: 0;
+  margin-top: 20px;
 }
 .input-group {
   position: relative;
