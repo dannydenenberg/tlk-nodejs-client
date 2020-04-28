@@ -11,7 +11,7 @@ import "bootstrap-vue/dist/bootstrap-vue.css";
 import VueSocketIO from "vue-socket.io";
 
 // TODO: CHANGE THIS FOR PRODUCTION.
-export const serverURL = "http://192.168.1.13:5000";
+export const serverURL = "https://tlk-nodejs.herokuapp.com";
 
 // create a socket.io implementation with vue.
 // Each component can call this.$socket.emit(...)
